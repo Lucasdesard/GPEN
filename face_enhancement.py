@@ -99,7 +99,6 @@ class FaceEnhancement(object):
             img = cv2.convertScaleAbs(img*(1-full_mask) + full_img*full_mask)
 
         return img, orig_faces, enhanced_faces
-        
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
@@ -117,7 +116,7 @@ if __name__=='__main__':
 
     #model = {'name':'GPEN-BFR-512', 'size':512, 'channel_multiplier':2, 'narrow':1}
     #model = {'name':'GPEN-BFR-256', 'size':256, 'channel_multiplier':1, 'narrow':0.5}
-    
+
     os.makedirs(args.outdir, exist_ok=True)
 
     faceenhancer = FaceEnhancement(size=args.size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, channel_multiplier=args.channel_multiplier, narrow=args.narrow, device='cuda' if args.use_cuda else 'cpu')
@@ -125,20 +124,17 @@ if __name__=='__main__':
     files = sorted(glob.glob(os.path.join(args.indir, '*.*g')))
     for n, file in enumerate(files[:]):
         filename = os.path.basename(file)
-        
+
         im = cv2.imread(file, cv2.IMREAD_COLOR) # BGR
         if not isinstance(im, np.ndarray): print(filename, 'error'); continue
         #im = cv2.resize(im, (0,0), fx=2, fy=2) # optional
 
         img, orig_faces, enhanced_faces = faceenhancer.process(im)
-        
+
         im = cv2.resize(im, img.shape[:2][::-1])
-        cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'_COMP.jpg'), np.hstack((im, img)))
-        cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'_GPEN.jpg'), img)
-        
-        for m, (ef, of) in enumerate(zip(enhanced_faces, orig_faces)):
-            of = cv2.resize(of, ef.shape[:2])
-            cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'_face%02d'%m+'.jpg'), np.hstack((of, ef)))
-        
-        if n%10==0: print(n, filename)
-        
+        cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'].jpg'), img)
+
+        os.remove(file)
+
+        if n%100==0: print(n, filename)
+
