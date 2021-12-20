@@ -118,8 +118,6 @@ if __name__=='__main__':
     #model = {'name':'GPEN-BFR-512', 'size':512, 'channel_multiplier':2, 'narrow':1}
     #model = {'name':'GPEN-BFR-256', 'size':256, 'channel_multiplier':1, 'narrow':0.5}
 
-    os.makedirs(args.outdir, exist_ok=True)
-
     faceenhancer = FaceEnhancement(size=args.size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, channel_multiplier=args.channel_multiplier, narrow=args.narrow, device='cuda' if args.use_cuda else 'cpu')
 
     video_base_path = '/'.join(args.input_video.split('/')[:-1])
