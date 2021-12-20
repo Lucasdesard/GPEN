@@ -60,7 +60,7 @@ class FaceEnhancement(object):
                 img = cv2.resize(img, img_sr.shape[:2][::-1])
 
         facebs, landms = self.facedetector.detect(img)
-        
+
         orig_faces, enhanced_faces = [], []
         height, width = img.shape[:2]
         full_mask = np.zeros((height, width), dtype=np.float32)
@@ -73,13 +73,13 @@ class FaceEnhancement(object):
             facial5points = np.reshape(facial5points, (2, 5))
 
             of, tfm_inv = warp_and_crop_face(img, facial5points, reference_pts=self.reference_5pts, crop_size=(self.size, self.size))
-            
+
             # enhance the face
             ef = self.facegan.process(of)
-            
+
             orig_faces.append(of)
             enhanced_faces.append(ef)
-            
+
             #tmp_mask = self.mask
             tmp_mask = self.mask_postprocess(self.faceparser.process(ef)[0]/255.)
             tmp_mask = cv2.resize(tmp_mask, ef.shape[:2])
@@ -87,7 +87,7 @@ class FaceEnhancement(object):
 
             if min(fh, fw)<100: # gaussian filter for small faces
                 ef = cv2.filter2D(ef, -1, self.kernel)
-            
+
             tmp_img = cv2.warpAffine(ef, tfm_inv, (width, height), flags=3)
 
             mask = tmp_mask - full_mask
