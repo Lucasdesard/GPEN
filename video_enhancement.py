@@ -113,7 +113,6 @@ if __name__=='__main__':
     parser.add_argument('--sr_model', type=str, default='rrdb_realesrnet_psnr', help='SR model')
     parser.add_argument('--sr_scale', type=int, default=2, help='SR scale')
     parser.add_argument('--input_video', type=str, default='examples/imgs', help='input folder')
-    parser.add_argument('--outdir', type=str, default='results/outs-BFR', help='output folder')
     args = parser.parse_args()
 
     #model = {'name':'GPEN-BFR-512', 'size':512, 'channel_multiplier':2, 'narrow':1}
@@ -123,28 +122,43 @@ if __name__=='__main__':
 
     faceenhancer = FaceEnhancement(size=args.size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, channel_multiplier=args.channel_multiplier, narrow=args.narrow, device='cuda' if args.use_cuda else 'cpu')
 
-    video_base_path = '/'.join(args.input_video[:-1])
-    frames_dir = f'{video_base_path}/temp'
-    os.makedirs(frames_dir, exist_ok=True)
+    video_base_path = '/'.join(args.input_video.split('/')[:-1])
+    temp_dir = f'{video_base_path}/temp'
+    original_frames_dir = f'{temp_dir}/original_frames/'
+    enhanced_frames_dir = f'{temp_dir}/enhanced_frames/'
 
-    ffmpeg.input(args.input_video).filter('framerate', framerate=0).output(f'{frames_dir}/%5d.jpg', start_number=0).overwrite_output().run(quiet=True)
+    if os.path.isdir(temp_dir):
+      shutil.rmtree(temp_dir)
+    os.makedirs(temp_dir)
+    os.makedirs(original_frames_dir)
+    os.makedirs(enhanced_frames_dir)
 
-    # files = sorted(glob.glob(os.path.join(args.indir, '*.*g')))
-    # for n, file in enumerate(files[:]):
-    #     filename = os.path.basename(file)
+    subprocess.run(['ffmpeg',
+                    '-i', args.input_video,
+                    '-framerate', '0',
+                    f'{original_frames_dir}%5d.jpg'])
 
-    #     im = cv2.imread(file, cv2.IMREAD_COLOR) # BGR
-    #     if not isinstance(im, np.ndarray): print(filename, 'error'); continue
-    #     #im = cv2.resize(im, (0,0), fx=2, fy=2) # optional
+    files = sorted(glob.glob(os.path.join(original_frames_dir, '*.*g')))
+    for n, file in enumerate(files[:]):
+        filename = os.path.basename(file)
 
-    #     img, orig_faces, enhanced_faces = faceenhancer.process(im)
+        im = cv2.imread(file, cv2.IMREAD_COLOR) # BGR
+        if not isinstance(im, np.ndarray): print(filename, 'error'); continue
 
-    #     im = cv2.resize(im, img.shape[:2][::-1])
-    #     cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'].jpg'), img)
+        img, orig_faces, enhanced_faces = faceenhancer.process(im)
 
-    #     os.remove(file)
+        im = cv2.resize(im, img.shape[:2][::-1])
+        cv2.imwrite(os.path.join(enhanced_frames_dir, '.'.join(filename.split('.')[:-1])+'.jpg'), img)
 
-    #     if n%100==0: print(n, filename)
+        os.remove(file)
 
-    # shutil.rmtree(frames_dir)
+        if n%100==0: print(n, filename)
 
+    enhanced_video_name = ''.join(args.input_video.split('.')[:-1]) + '_enhanced.mp4'
+    subprocess.run(['ffmpeg',
+                    '-i', f'{enhanced_frames_dir}%5d.jpg',
+                    '-framerate', '30',
+                    '-c:v', 'libx264',
+                    enhanced_video_name])
+
+    shutil.rmtree(temp_dir)
